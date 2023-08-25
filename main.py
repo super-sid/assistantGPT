@@ -26,15 +26,25 @@ def main():
             "project_idea",
         ],
         partial_variables={"description": DESCRIPTION})
+    prompt_files = PromptTemplate(template=PROJECT_FILE_TEMPLATE,
+        input_variables=["project_idea", "project_structure", "file_name"],
+        partial_variables={
+            "description": DESCRIPTION,
+        })
     llm_chain = LLMChain(prompt=prompt, llm=llm, verbose=True)
+    llm_chain_files = LLMChain(prompt=prompt_files, llm=llm, verbose=True)
+    
 
     # Store the chain in the user session
     cl.user_session.set("llm_chain", llm_chain)
+    cl.user_session.set("llm_chain_files", llm_chain_files)
 
 @cl.on_message
 async def main(message: str):
     # Retrieve the chain from the user session
     llm_chain = cl.user_session.get("llm_chain")  # type: LLMChain
+    llm_chain_files = cl.user_session.get("llm_chain_files")  # type: LLMChain
+    print("aksjndjasndjasd", llm_chain_files)
     answer_prefix_tokens=["FINAL", "ANSWER"]
 
     # Call the chain asynchronously
@@ -51,7 +61,7 @@ async def main(message: str):
     _write_file(
         ".boilerplate_x", yaml.safe_dump(project_structure)
     )
-    generate_project_files(llm_chain, res, project_structure)
+    generate_project_files(llm_chain_files, res, project_structure)
 
     # Do any post processing here
 
@@ -60,13 +70,15 @@ async def main(message: str):
     await cl.Message(content=res["text"]).send()
     return llm_chain
 
-def generate_project_files(llm_chain, prompt, project_structure: list[str]) -> None:
+def generate_project_files(llm_chain_files, prompt, project_structure: list[str]) -> None:
     """Generates the project files."""
     # print("asdasdasdasd", llm_chain, prompt, project_structure)
     project_structure_str = yaml.safe_dump(project_structure)
     print("asdasdasd", project_structure)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
+        for key in project_structure:
+            project_structure = project_structure[key]
         for file_name in project_structure:
             print("asjndijajindasd", file_name)
             if (Path("Fastapi") / file_name).exists():
@@ -78,21 +90,22 @@ def generate_project_files(llm_chain, prompt, project_structure: list[str]) -> N
             logger.info(f"Generating file content: {file_name}...")
             futures.append(
                 executor.submit(
-                    generate_project_file, llm_chain, prompt, file_name, project_structure_str
+                    generate_project_file, llm_chain_files, prompt, file_name, project_structure_str
                 )
             )
         for future in concurrent.futures.as_completed(futures):
             if future.exception() is not None:
                 logger.error(f"Failed to generate file: {future.exception()}")
 
-def generate_project_file(llm_chain, prompt, file_name: str, project_structure_str: str
+def generate_project_file(llm_chain_files, prompt, file_name: str, project_structure_str: str
     ) -> None:
         """Generates a single project file."""
-        file_content = llm_chain.predict(
+        file_content = llm_chain_files.predict(
             project_idea=prompt,
             project_structure=project_structure_str,
             file_name=file_name,
         )
+        print("asljdniajosdjasd", file_content)
         _write_file(file_name, file_content)
 
 def _write_file(file_name: str, file_content: str):
