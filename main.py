@@ -74,7 +74,7 @@ async def main(message: str):
         ".boilerplate_x", yaml.safe_dump(project_structure)
     )
     generate_project_files(llm_chain_files, res, project_structure)
-    githubOperations(False, 'Initial commit', 'babyagi-upload-v3', 'Fastapi')
+    githubOperations(False, 'Initial commit', project_name, project_name)
     # Do any post processing here
 
     # "res" is a Dict. For this chain, we get the response by reading the "text" key.
