@@ -6,18 +6,32 @@ from langchain.llms import Ollama
 from langchain import PromptTemplate, LLMChain
 from langchain.memory import ConversationBufferMemory
 from pathlib import Path
-from utils.githubOperations import githubOperations
-
+import random
 import yaml
 from constants import *
+from utils.githubOperations import githubOperations
+
 # Setup
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 logger = logging.getLogger(__name__)
 llm = Ollama(
     base_url="http://127.0.0.1:11434", 
-    model="llama2", 
+    model="llama2:13b", 
     temperature=0
 )
+
+def generate_project_name_with_dash():
+    # Predefined list of adjectives and nouns for generating project names
+    adjectives = ["swift", "epic", "nova", "quantum", "zenith", "astral", "nebula", "dynamic", "silent", "radiant"]
+    nouns = ["orion", "pulse", "horizon", "nexus", "voyager", "harbinger", "specter", "vertex", "mystic", "echo"]
+
+    # Generating a random project name by choosing from the lists
+    random_adjective = random.choice(adjectives)
+    random_noun = random.choice(nouns)
+
+    return f"{random_adjective}-{random_noun}"
+
+project_name = generate_project_name_with_dash()
 
 @cl.on_chat_start
 def main():
@@ -45,19 +59,16 @@ async def main(message: str):
     # Retrieve the chain from the user session
     llm_chain = cl.user_session.get("llm_chain")  # type: LLMChain
     llm_chain_files = cl.user_session.get("llm_chain_files")  # type: LLMChain
-    print("aksjndjasndjasd", llm_chain_files)
-    answer_prefix_tokens=["FINAL", "ANSWER"]
-
+    
     # Call the chain asynchronously
     res = await cl.make_async(llm_chain)(
-        message, callbacks=[cl.LangchainCallbackHandler(stream_final_answer=True,
-        answer_prefix_tokens=answer_prefix_tokens,)]
+        message, callbacks=[cl.LangchainCallbackHandler()]
     )
 
     chain_output = llm_chain.predict(project_idea=res)
-    # print("askjdnjasdnjasd", chain_output)
+    print("DATTTTTTAAAA", clean_yaml_tabs(chain_output.strip()))
     project_structure = yaml.safe_load(chain_output.strip())
-    # print("sahdiuashdaihsd", project_structure)
+    # print("asojdioasjdiaiodasd", project_structure)
     # cache the project structure
     _write_file(
         ".boilerplate_x", yaml.safe_dump(project_structure)
@@ -73,19 +84,16 @@ async def main(message: str):
 
 def generate_project_files(llm_chain_files, prompt, project_structure: list[str]) -> None:
     """Generates the project files."""
-    # print("asdasdasdasd", llm_chain, prompt, project_structure)
     project_structure_str = yaml.safe_dump(project_structure)
-    print("asdasdasd", project_structure)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for key in project_structure:
             project_structure = project_structure[key]
         for file_name in project_structure:
-            print("asjndijajindasd", file_name)
-            if (Path("Fastapi") / file_name).exists():
+            if (Path(project_name) / file_name).exists():
                 logger.info(f"File already exists: {file_name}")
                 continue
-            if (Path("Fastapi") / file_name).suffix == "":
+            if (Path(project_name) / file_name).suffix == "":
                 logger.info(f"Skipping directory: {file_name}")
                 continue
             logger.info(f"Generating file content: {file_name}...")
@@ -106,11 +114,63 @@ def generate_project_file(llm_chain_files, prompt, file_name: str, project_struc
             project_structure=project_structure_str,
             file_name=file_name,
         )
-        print("asljdniajosdjasd", file_content)
+        print("FILEEE CONTENTS BEFOREEEEE", file_content)
+        file_content = extract_code(file_content)
+        print("FILEEE CONTENTS", file_content)
         _write_file(file_name, file_content)
 
 def _write_file(file_name: str, file_content: str):
     """Writes the file to the output path."""
-    file_path = Path("Fastapi") / file_name
+    file_path = Path(project_name) / file_name
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(file_content)
+
+def extract_code(text):
+    # A helper function to check if a line is a language identifier
+    def is_language_identifier(line):
+        # We assume that a line is a language identifier if it contains only alphabetical characters
+        return line.isalpha()
+
+    # Splitting based on triple backticks
+    if "```" in text:
+        blocks = text.split("```")
+        
+        # Filtering out empty blocks and taking every alternate block starting from the second one, which should contain the code
+        code_blocks = [block.strip() for block in blocks if block.strip()][1::2]
+        
+        # Joining the blocks while ignoring the lines with backticks or language identifiers
+        return "\n".join([line for block in code_blocks for line in block.splitlines() if not (line.strip().startswith("```") or is_language_identifier(line.strip()))])
+
+    # Splitting based on triple dashes
+    if "---" in text:
+        blocks = text.split("---")
+        
+        # Filtering out empty blocks and taking every alternate block starting from the second one, which should contain the code
+        code_blocks = [block.strip() for block in blocks if block.strip()][1::2]
+        
+        # Joining the blocks while ignoring the lines with dashes or language identifiers
+        return "\n".join([line for block in code_blocks for line in block.splitlines() if not (line.strip().startswith("---") or is_language_identifier(line.strip()))])
+
+    # Splitting based on <code></code> tags
+    if "<code>" in text and "</code>" in text:
+        blocks = text.split("<code>")
+        end_blocks = [block.split("</code>")[0] for block in blocks if "</code>" in block]
+        
+        # Joining the blocks while ignoring the lines with code tags or language identifiers
+        return "\n".join([line.strip() for block in end_blocks for line in block.splitlines() if not (line.strip().startswith("<code>") or line.strip().startswith("</code>") or is_language_identifier(line.strip()))])
+    
+    return text
+
+def clean_yaml_tabs(yaml_content):
+    # Detect the level of indentation before a tab
+    lines = yaml_content.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        if '\t' in line:
+            spaces_before_tab = len(line) - len(line.lstrip())
+            # Replace tabs with newline and appropriate indentation
+            line = line.replace('\t', '\n' + ' ' * spaces_before_tab)
+        cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
