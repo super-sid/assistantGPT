@@ -1,4 +1,4 @@
-# assisstantGPT
+# assistantGPT
 An AI chatbot which helps in generating the following:
  1. Scaffold of all kinds of BE/FE frameworks and libraries.
  2. Breaks down an engineering/product task into sub-task and creates tickets on Jira as soon as we type it in the prompt.
