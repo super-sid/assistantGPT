@@ -6,6 +6,7 @@ from langchain.llms import Ollama
 from langchain import PromptTemplate, LLMChain
 from langchain.memory import ConversationBufferMemory
 from pathlib import Path
+from utils.githubOperations import githubOperations
 
 import yaml
 from constants import *
@@ -62,7 +63,7 @@ async def main(message: str):
         ".boilerplate_x", yaml.safe_dump(project_structure)
     )
     generate_project_files(llm_chain_files, res, project_structure)
-
+    githubOperations(False, 'Initial commit', 'babyagi-upload-v3', 'Fastapi')
     # Do any post processing here
 
     # "res" is a Dict. For this chain, we get the response by reading the "text" key.
