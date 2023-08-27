@@ -6,7 +6,7 @@ from langchain.llms import Ollama
 from langchain import PromptTemplate, LLMChain
 from langchain.memory import ConversationBufferMemory
 from pathlib import Path
-
+import random
 import yaml
 from constants import *
 # Setup
@@ -17,6 +17,19 @@ llm = Ollama(
     model="llama2:13b", 
     temperature=0
 )
+
+def generate_project_name_with_dash():
+    # Predefined list of adjectives and nouns for generating project names
+    adjectives = ["swift", "epic", "nova", "quantum", "zenith", "astral", "nebula", "dynamic", "silent", "radiant"]
+    nouns = ["orion", "pulse", "horizon", "nexus", "voyager", "harbinger", "specter", "vertex", "mystic", "echo"]
+
+    # Generating a random project name by choosing from the lists
+    random_adjective = random.choice(adjectives)
+    random_noun = random.choice(nouns)
+
+    return f"{random_adjective}-{random_noun}"
+
+project_name = generate_project_name_with_dash()
 
 @cl.on_chat_start
 def main():
@@ -75,10 +88,10 @@ def generate_project_files(llm_chain_files, prompt, project_structure: list[str]
         for key in project_structure:
             project_structure = project_structure[key]
         for file_name in project_structure:
-            if (Path("Fastapi") / file_name).exists():
+            if (Path(project_name) / file_name).exists():
                 logger.info(f"File already exists: {file_name}")
                 continue
-            if (Path("Fastapi") / file_name).suffix == "":
+            if (Path(project_name) / file_name).suffix == "":
                 logger.info(f"Skipping directory: {file_name}")
                 continue
             logger.info(f"Generating file content: {file_name}...")
@@ -106,7 +119,7 @@ def generate_project_file(llm_chain_files, prompt, file_name: str, project_struc
 
 def _write_file(file_name: str, file_content: str):
     """Writes the file to the output path."""
-    file_path = Path("Fastapi") / file_name
+    file_path = Path(project_name) / file_name
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(file_content)
 
