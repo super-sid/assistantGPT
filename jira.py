@@ -8,8 +8,8 @@ def create_jira_ticket(ticket_data_array):
         "Accept": "application/json",
         "Content-type": "application/json"
     }
-
-    for ticket_data in json.loads(ticket_data_array.split("json")[1]):
+    tickets = json.loads(ticket_data_array).get("tasks")
+    for ticket_data in tickets:
             payload = json.dumps(
                 {
                     "fields": {
@@ -27,5 +27,5 @@ def create_jira_ticket(ticket_data_array):
             )
 
             response = requests.post(url, headers=headers, data=payload, auth=("ashwin.manohar@tifin.com",
-                                                                       "ATATT3xFfGF0iVChSDll1LpJBMMohjOd6Dpun-eJzpq12QqtGXqi3GcuLRiHrpWFeqUcxRlJLj7Y15YBpNFPshpEMRENrsCvzpBnR_psgIMnXhLeB9YGm3MIx9ebkTZZcFo9enIoT2lU-RM7KMwG70ZWGoIyS47IgD_1Z3PMPHnzocITvyvdHvA=A7D16B0B"))            
+                                                                       "ATATT3xFfGF0De2KuzeSj01yF0vYW9DmRdSHhbRHeVFhagfY2WxH8YJn8tdFTXNIZrR5jr-UEt_L3fDeD8VQqdLmlYUXMsrygObuLxCu-TbG3VQAK3ZoSXUH880eQDpoOXH7bZ0Tbf6hZlmtK6YZAW9w42BjKluxZJ4NzmQUJHElflQEn2hokYM=984CF0AA"))            
             print(response.text)

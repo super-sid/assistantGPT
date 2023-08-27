@@ -6,25 +6,40 @@ from langchain.memory import ConversationBufferMemory
 from jira import create_jira_ticket
 
 from jira_constants import *
+from chainlit.input_widget import Select
 
 memory = ConversationBufferMemory(
     memory_key="chat_history", return_messages=True)
 logger = logging.getLogger(__name__)
 llm = Ollama(
     base_url="http://127.0.0.1:11434",
-    model="llama2",
+    model="llama2:13b",
     temperature=0,
 )
 
 
 @cl.on_chat_start
-def main():
+async def main():
     # Instantiate the chain for that user session
+    settings = await cl.ChatSettings(
+        [
+            Select(
+                id="Task",
+                label="Select Task",
+                values=["jira", "coding"],
+                initial_index=0,
+            )
+        ]
+    ).send()
+    value = settings["Task"]
+    print("ASJDASJIDJASJD", value)
+    if value == "jira":
+        print("ASJDASJIDJASJD", value)
     prompt = PromptTemplate(template=template,
                             input_variables=[
                                 "project_idea",
                             ],
-                            partial_variables={"description": DESCRIPTION},
+                            partial_variables={"description": JIRA_DESCRIPTION},
                             )
 
     llm_chain = LLMChain(prompt=prompt, llm=llm, verbose=True)

@@ -10,13 +10,15 @@ import random
 import yaml
 from constants import *
 from utils.githubOperations import githubOperations
+from chainlit.input_widget import Select
+from jira import create_jira_ticket
 
 # Setup
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 logger = logging.getLogger(__name__)
 llm = Ollama(
     base_url="http://127.0.0.1:11434", 
-    model="llama2:13b", 
+    model="llama2", 
     temperature=0
 )
 
@@ -34,53 +36,75 @@ def generate_project_name_with_dash():
 project_name = generate_project_name_with_dash()
 
 @cl.on_chat_start
-def main():
+async def main():
     # Instantiate the chain for that user session
-    prompt = PromptTemplate(template=template,
-        input_variables=[
-            "project_idea",
-        ],
-        partial_variables={"description": DESCRIPTION})
-    prompt_files = PromptTemplate(template=PROJECT_FILE_TEMPLATE,
-        input_variables=["project_idea", "project_structure", "file_name"],
-        partial_variables={
-            "description": DESCRIPTION,
-        })
-    llm_chain = LLMChain(prompt=prompt, llm=llm, verbose=True)
-    llm_chain_files = LLMChain(prompt=prompt_files, llm=llm, verbose=True)
-    
-
-    # Store the chain in the user session
-    cl.user_session.set("llm_chain", llm_chain)
-    cl.user_session.set("llm_chain_files", llm_chain_files)
+    settings = await cl.ChatSettings(
+        [
+            Select(
+                id="Task",
+                label="Select Task",
+                values=["jira", "coding"],
+                initial_value="jira",
+            )
+        ]
+    ).send()
+    cl.user_session.set("user_settings", settings)
 
 @cl.on_message
 async def main(message: str):
     # Retrieve the chain from the user session
-    llm_chain = cl.user_session.get("llm_chain")  # type: LLMChain
-    llm_chain_files = cl.user_session.get("llm_chain_files")  # type: LLMChain
+    user_settings = cl.user_session.get("user_settings")
+    task = user_settings.get("Task")
+    if task == "coding":
+        prompt = PromptTemplate(template=GENERATE_PROJECT_STRUCTURE_TEMPLATE,
+            input_variables=[
+                "project_idea",
+            ],
+            partial_variables={"description": DESCRIPTION})
+        prompt_files = PromptTemplate(template=PROJECT_FILE_TEMPLATE,
+            input_variables=["project_idea", "project_structure", "file_name"],
+            partial_variables={
+                "description": DESCRIPTION,
+            })
+    elif task == "jira":
+        prompt = PromptTemplate(template=JIRA_TEMPLATE,
+                            input_variables=[
+                                "project_idea",
+                            ],
+                            partial_variables={"description": JIRA_DESCRIPTION},
+                            )
+    
+    llm_chain = LLMChain(prompt=prompt, llm=llm, verbose=True)    
     
     # Call the chain asynchronously
     res = await cl.make_async(llm_chain)(
         message, callbacks=[cl.LangchainCallbackHandler()]
     )
-
-    chain_output = llm_chain.predict(project_idea=res)
-    print("DATTTTTTAAAA", clean_yaml_tabs(chain_output.strip()))
-    project_structure = yaml.safe_load(chain_output.strip())
-    # print("asojdioasjdiaiodasd", project_structure)
-    # cache the project structure
-    _write_file(
-        ".boilerplate_x", yaml.safe_dump(project_structure)
-    )
-    generate_project_files(llm_chain_files, res, project_structure)
-    githubOperations(False, 'Initial commit', project_name, project_name)
+    if task == "coding":
+        llm_chain_files = LLMChain(prompt=prompt_files, llm=llm, verbose=True)
+        chain_output = llm_chain.predict(project_idea=res)
+        project_structure = yaml.safe_load(chain_output.strip())
+        # cache the project structure
+        _write_file(
+            ".boilerplate_x", yaml.safe_dump(project_structure)
+        )
+        generate_project_files(llm_chain_files, res, project_structure)
+        githubOperations(False, 'Initial commit', project_name, project_name)
+    elif task == "jira":
+        extracted_array = extract_code(res.get("text"))
+        create_jira_ticket(extracted_array)
     # Do any post processing here
 
     # "res" is a Dict. For this chain, we get the response by reading the "text" key.
     # This varies from chain to chain, you should check which key to read.
     await cl.Message(content=res["text"]).send()
     return llm_chain
+
+@cl.on_settings_update
+async def setup_agent(settings):
+    print("on_settings_update", settings)
+    cl.user_session.set("user_settings", settings)
+
 
 def generate_project_files(llm_chain_files, prompt, project_structure: list[str]) -> None:
     """Generates the project files."""
@@ -114,9 +138,7 @@ def generate_project_file(llm_chain_files, prompt, file_name: str, project_struc
             project_structure=project_structure_str,
             file_name=file_name,
         )
-        print("FILEEE CONTENTS BEFOREEEEE", file_content)
         file_content = extract_code(file_content)
-        print("FILEEE CONTENTS", file_content)
         _write_file(file_name, file_content)
 
 def _write_file(file_name: str, file_content: str):

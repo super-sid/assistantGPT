@@ -10,7 +10,7 @@ def githubOperations(private: bool, commit_message: str, repository_name: str, t
     username = "super-sid"
     email = "siddhant.ag7@gmail.com"
     # repository_name = 'babyagi-upload'
-    token = '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'
+    token = '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'
     print('token',token)
     user = Github(token).get_user()
     github_repo = user.create_repo(repository_name, private=private)
