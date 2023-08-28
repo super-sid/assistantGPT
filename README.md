@@ -12,7 +12,8 @@ ollama pull llama2
 ```
 3. Once the model is downloaded and is up and running, clone this repository.
 4. Inside the repository, create a python virtual environment and activate it.
-5. Run the following commands for
+5. Before running please make sure you're in arm64e mode not x86_64 since by default macbook pros support these only.
+6. Run the following commands for
   #### Installing Dependencies 
 ```
 pip install -r requirements.txt
