@@ -11,7 +11,8 @@ An AI chatbot which helps in generating the following:
 ollama pull llama2
 ```
 3. Once the model is downloaded and is up and running, clone this repository.
-4. Run the following commands for
+4. Inside the repository, create a python virtual environment and activate it.
+5. Run the following commands for
   #### Installing Dependencies 
 ```
 pip install -r requirements.txt
@@ -20,5 +21,5 @@ pip install -r requirements.txt
 ```
 chainlit run main.py -w
 ```
-5. After running the above project will be available to test at http://localhost:8000
-6. Try it out!
+6. After running the above project will be available to test at http://localhost:8000
+7. Try it out!
