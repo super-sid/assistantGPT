@@ -22,5 +22,5 @@ pip install -r requirements.txt
 ```
 chainlit run main.py -w
 ```
-6. After running the above project will be available to test at http://localhost:8000
-7. Try it out!
+7. After running the above project will be available to test at http://localhost:8000
+8. Try it out!
