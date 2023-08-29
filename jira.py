@@ -2,8 +2,6 @@ import requests
 import json
 
 def create_jira_ticket(ticket_data_array):
-
-
     access_token = "ATATT3xFfGF0emz_aSBPPcbmZIotwLiJj14mf_bCLpua1Vj3csoTIHdQIZJkKa1QMGN5_yEX4v48aVhmszVjD8DXRhBvtt0m_HyzfMUF9uoOPKM6a8Z5yIewrXctLB6WwJzRH0SyjF39Seb6l0nfOtD7NfZ-MOuE-9-a0n_WPnYzALqqYMd0Cm0=2C32570A"
     user_email = "ashwin.manohar@tifin.com"
     url = "https://hackathon-test.atlassian.net/rest/api/2/issue/"
