@@ -17,8 +17,8 @@ from jira import create_jira_ticket
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 logger = logging.getLogger(__name__)
 llm = Ollama(
-    base_url="http://127.0.0.1:11434", 
-    model="llama2", 
+    base_url="http://127.0.0.1:11434",
+    model="llama2",
     temperature=0
 )
 
